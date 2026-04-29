@@ -5,69 +5,78 @@
 <title>Runner Ciberseguro</title>
 
 <style>
-body {
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#0b5e2a; /* verde institucional */
-  color:white;
-  text-align:center;
-}
+  body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0b5e2a;
+    color: white;
+    text-align: center;
+  }
 
-h2 {
-  margin:10px;
-}
+  h2 {
+    margin: 10px;
+  }
 
-canvas {
-  background:#e8f5e9;
-  display:block;
-  margin:0 auto;
-  border:4px solid #f9a825; /* amarillo */
-  border-radius:10px;
-}
+  canvas {
+    background: #e8f5e9;
+    display: block;
+    margin: 0 auto;
+    border: 4px solid #f9a825;
+    border-radius: 10px;
+  }
 
-#ui {
-  margin:10px;
-  font-size:18px;
-}
+  #ui {
+    margin: 10px;
+    font-size: 18px;
+  }
 
-/* BOTONES */
-button {
-  padding:10px 15px;
-  margin:5px;
-  border:none;
-  border-radius:8px;
-  background:#f9a825;
-  color:black;
-  cursor:pointer;
-  font-weight:bold;
-}
+  button {
+    padding: 10px 15px;
+    margin: 5px;
+    border: none;
+    border-radius: 8px;
+    background: #f9a825;
+    color: black;
+    cursor: pointer;
+    font-weight: bold;
+  }
 
-/* PANTALLA INICIAL */
-#startScreen {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:linear-gradient(#0b5e2a, #1976d2);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-  z-index:999;
-}
+  #startScreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(#0b5e2a, #1976d2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 999;
+  }
 
-/* PREGUNTAS */
-#overlay {
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background:rgba(0,0,0,0.85);
-  display:none;
-  justify-content:center;
-  align-items:center;
-  flex-direction:column;
-}
+  #overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  #questionBox {
+    background: white;
+    color: black;
+    padding: 20px;
+    border-radius: 15px;
+    max-width: 320px;
+  }
 </style>
-
 </head>
 
 <body>
@@ -77,200 +86,237 @@ button {
 <canvas id="game" width="400" height="500"></canvas>
 
 <div id="ui">
-  Puntaje: <span id="score">0</span>
+  Puntaje: <span id="score">0</span> |
+  Nivel: <span id="nivel">Fácil</span>
 </div>
 
-<!-- PANTALLA INICIAL -->
+<!-- INICIO -->
 <div id="startScreen">
+  <h2>🏆 Gobernación de Risaralda</h2>
 
-<h2>🏆 Gobernación de Risaralda</h2>
+  <p style="max-width:300px;">
+    <img src="img/logo-risaralda.png" style="width:200px;"><br><br>
+    Usa ← →, Barra espaciadora o click para moverte<br><br>
+    Evita peligros 🚧<br><br>
+    <br>Coge los regalos 🎁 y estrellas ⭐ para sumar puntos <br><br>
+    Responde preguntas ❓<br><br>
+    ¡Llega al final! 🎉
+  </p>
 
-<p style="max-width:300px;">
-  <img src="img/logo-risaralda.png" alt="Logo Risaralda" class="risaralda-logo" style="width: 200px; height: auto; margin-bottom: 14px; text-align: center;"><br><br>
-Usa ← → para moverte<br><br>
-Evita obstáculos 🚧<br><br>
-Responde bien las preguntas ❓<br><br>
-¡Llega al final para ganar! 🎉
-</p>
-
-<button onclick="startGame()">Iniciar Juego</button>
-
+  <button onclick="startGame()">Iniciar Juego</button>
 </div>
 
 <!-- PREGUNTAS -->
 <div id="overlay">
-  <h3 id="question"></h3>
-  <div id="answers"></div>
+  <div id="questionBox">
+    <h3 id="question"></h3>
+    <div id="answers"></div>
+  </div>
 </div>
 
 <script>
-
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-let player = {x:180, y:420, w:40, h:40};
+let player = { x: 180, y: 420, w: 40, h: 60 };
 let obstacles = [];
 let score = 0;
 let speed = 2;
 let gameRunning = false;
 
-let questions = [
-
-{ q:"¿Te insultan en chat? 😢", a:["Insultar","Ignorar y pedir ayuda"], c:1 },
-{ q:"¿Te piden contraseña?", a:["Dar","No dar"], c:1 },
-{ q:"Foto sin permiso", a:["Nada","Reportar"], c:1 },
-{ q:"Mensaje raro", a:["Responder","Bloquear"], c:1 },
-{ q:"Grupo molesto", a:["Quedarse","Salir"], c:1 },
-{ q:"Te amenazan", a:["Callar","Contar"], c:1 },
-{ q:"Piden ubicación", a:["Enviar","No enviar"], c:1 },
-{ q:"Te insultan", a:["Responder","Bloquear"], c:1 },
-{ q:"Perfil falso", a:["Creer","Verificar"], c:1 },
-{ q:"Te chantajean", a:["Aceptar","Buscar ayuda"], c:1 }
-
-];
-
-// MEZCLAR
-questions.sort(() => Math.random() - 0.5);
-
-let qIndex = 0;
-
-// CONTROLES CON LÍMITES
-document.addEventListener("keydown", e=>{
-if(e.key==="ArrowLeft"){
-player.x -= 20;
-}
-if(e.key==="ArrowRight"){
-player.x += 20;
+/* 🔊 SONIDO */
+function sound(freq) {
+  let ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
+  let osc = ctxAudio.createOscillator();
+  osc.connect(ctxAudio.destination);
+  osc.frequency.value = freq;
+  osc.start();
+  setTimeout(() => osc.stop(), 120);
 }
 
-// límites
-if(player.x < 0) player.x = 0;
-if(player.x > canvas.width - player.w)
-player.x = canvas.width - player.w;
+/* 🧠 PREGUNTAS */
+const niveles = {
+  facil: [
+    { q: "¿Qué es el ciberacoso?", a: ["Molestar por internet", "Jugar online"], c: 0 },
+    { q: "¿Debes compartir tu contraseña?", a: ["Sí", "No"], c: 1 }
+  ],
+  medio: [
+    { q: "Te piden fotos personales", a: ["Enviar", "No enviar"], c: 1 },
+    { q: "Perfil sospechoso", a: ["Confiar", "Verificar"], c: 1 }
+  ],
+  dificil: [
+    { q: "Te amenazan", a: ["Ignorar", "Denunciar"], c: 1 },
+    { q: "Te chantajean", a: ["Aceptar", "Buscar ayuda"], c: 1 }
+  ]
+};
 
+let nivel = "facil";
+let pool = [];
+
+/* CONTROLES */
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowLeft") player.x -= 20;
+  if (e.key === "ArrowRight") player.x += 20;
+
+  if (player.x < 0) player.x = 0;
+  if (player.x > 360) player.x = 360;
 });
 
-// DIBUJAR
-function draw(){
-ctx.clearRect(0,0,400,500);
+/* 👦 DIBUJAR NIÑO */
+function drawPlayer() {
+  let x = player.x, y = player.y;
 
-// jugador
-ctx.fillStyle="#1b5e20";
-ctx.fillRect(player.x, player.y, player.w, player.h);
+  // cabeza
+  ctx.fillStyle = "#fcd5b4";
+  ctx.beginPath();
+  ctx.arc(x + 20, y + 10, 10, 0, Math.PI * 2);
+  ctx.fill();
 
-// obstáculos
-ctx.fillStyle="#c62828";
-obstacles.forEach(o=>{
-ctx.fillRect(o.x,o.y,40,40);
-});
+  // cuerpo
+  ctx.fillStyle = "#1976d2";
+  ctx.fillRect(x + 10, y + 20, 20, 25);
+
+  // piernas
+  ctx.fillStyle = "#333";
+  ctx.fillRect(x + 10, y + 45, 8, 15);
+  ctx.fillRect(x + 22, y + 45, 8, 15);
 }
 
-// ACTUALIZAR
-function update(){
-if(!gameRunning) return;
+/* DIBUJAR */
+function draw() {
+  ctx.clearRect(0, 0, 400, 500);
 
-if(Math.random()<0.03){
-obstacles.push({x:Math.random()*360,y:0});
+  drawPlayer();
+
+  obstacles.forEach(o => {
+    ctx.font = "28px Arial";
+    ctx.fillText(o.emoji, o.x, o.y);
+  });
 }
 
-obstacles.forEach(o=>o.y+=speed);
+/* UPDATE */
+function update() {
+  if (!gameRunning) return;
 
-obstacles.forEach(o=>{
-if(player.x < o.x+40 &&
-player.x+40 > o.x &&
-player.y < o.y+40 &&
-player.y+40 > o.y){
-gameRunning=false;
-showQuestion();
+  // niveles
+  if (score > 200) {
+    nivel = "dificil";
+    speed = 4;
+  } else if (score > 100) {
+    nivel = "medio";
+    speed = 3;
+  } else {
+    nivel = "facil";
+    speed = 2;
+  }
+
+  document.getElementById("nivel").innerText = nivel;
+
+  // generar obstáculos
+  if (Math.random() < 0.03) {
+    let tipos = [
+      { emoji: "🗑️", tipo: "malo" },
+      { emoji: "🚗", tipo: "malo" },
+      { emoji: "👤", tipo: "malo" },
+      { emoji: "⭐", tipo: "bueno" },
+      { emoji: "🎁", tipo: "bueno" }
+    ];
+
+    let t = tipos[Math.floor(Math.random() * tipos.length)];
+
+    obstacles.push({
+      x: Math.random() * 360,
+      y: 0,
+      emoji: t.emoji,
+      tipo: t.tipo
+    });
+  }
+
+  obstacles.forEach(o => o.y += speed);
+
+  // colisiones
+  obstacles.forEach(o => {
+    if (
+      player.x < o.x + 40 &&
+      player.x + 40 > o.x &&
+      player.y < o.y + 40 &&
+      player.y + 40 > o.y
+    ) {
+      if (o.tipo === "malo") {
+        sound(200);
+        gameRunning = false;
+        showQuestion();
+      } else {
+        sound(900);
+        score += 30;
+      }
+
+      obstacles = obstacles.filter(ob => ob !== o);
+    }
+  });
+
+  score++;
+  document.getElementById("score").innerText = score;
 }
-});
 
-score++;
-document.getElementById("score").innerText=score;
-}
-
-// LOOP
-function loop(){
-update();
-draw();
-requestAnimationFrame(loop);
+/* LOOP */
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
 }
 loop();
 
-// INICIAR
-function startGame(){
-document.getElementById("startScreen").style.display="none";
-gameRunning = true;
+/* START */
+function startGame() {
+  document.getElementById("startScreen").style.display = "none";
+  gameRunning = true;
+  pool = [...niveles[nivel]];
 }
 
-// PREGUNTAS
-function showQuestion(){
-if(qIndex>=questions.length){
-endGame(true);
-return;
+/* PREGUNTA */
+function showQuestion() {
+  if (pool.length === 0) {
+    pool = [...niveles[nivel]];
+  }
+
+  let i = Math.floor(Math.random() * pool.length);
+  let q = pool.splice(i, 1)[0];
+
+  document.getElementById("overlay").style.display = "flex";
+  document.getElementById("question").innerText = q.q;
+
+  let html = "";
+  q.a.forEach((ans, index) => {
+    html += `<button onclick="answer(${index}, ${q.c})">${ans}</button>`;
+  });
+
+  document.getElementById("answers").innerHTML = html;
 }
 
-let q=questions[qIndex];
-document.getElementById("overlay").style.display="flex";
-document.getElementById("question").innerText=q.q;
+/* RESPUESTA */
+function answer(i, c) {
+  if (i === c) {
+    sound(800);
+    score += 50;
+  } else {
+    sound(100);
+    endGame(false);
+    return;
+  }
 
-let html="";
-q.a.forEach((ans,i)=>{
-html+=`<button onclick="answer(${i})">${ans}</button>`;
-});
-document.getElementById("answers").innerHTML=html;
+  document.getElementById("overlay").style.display = "none";
+  gameRunning = true;
 }
 
-function answer(i){
-let q=questions[qIndex];
-
-if(i===q.c){
-qIndex++;
-document.getElementById("overlay").style.display="none";
-gameRunning=true;
-obstacles=[];
-}else{
-endGame(false);
+/* FINAL */
+function endGame() {
+  gameRunning = false;
+  document.getElementById("overlay").style.display = "flex";
+  document.getElementById("question").innerHTML = "❌ Intenta otra vez";
+  document.getElementById("answers").innerHTML =
+    "<button onclick='location.reload()'>Reiniciar</button>";
 }
-}
-
-// FINAL
-function endGame(win){
-let overlay=document.getElementById("overlay");
-overlay.style.display="flex";
-
-if(win){
-saveScore(score);
-document.getElementById("question").innerHTML="🎉 ¡Ganaste!";
-}else{
-document.getElementById("question").innerHTML="❌ Intenta otra vez";
-}
-
-document.getElementById("answers").innerHTML=
-"<button onclick='location.reload()'>Reiniciar</button>"+
-"<button onclick='showRanking()'>Ranking</button>";
-}
-
-// RANKING
-function saveScore(s){
-let scores=JSON.parse(localStorage.getItem("ranking"))||[];
-scores.push(s);
-scores.sort((a,b)=>b-a);
-scores=scores.slice(0,5);
-localStorage.setItem("ranking",JSON.stringify(scores));
-}
-
-function showRanking(){
-let scores=JSON.parse(localStorage.getItem("ranking"))||[];
-let list="<h3>🏆 Ranking</h3>";
-scores.forEach((s,i)=>{
-list+=`<p>${i+1}. ${s}</p>`;
-});
-document.getElementById("question").innerHTML=list;
-document.getElementById("answers").innerHTML=
-"<button onclick='location.reload()'>Jugar otra vez</button>";
-}
-
 </script>
 
 </body>
