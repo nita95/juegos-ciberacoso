@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🛡️ Guardián Digital — ¡La Carrera del Internet!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@700;800;900&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: linear-gradient(135deg, #38cb75 20%, #1c36de 40%, #ced953 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Nunito', sans-serif;
+    overflow: hidden;
+    touch-action: manipulation;
+  }
+
+  /* ===== PANTALLA INICIO ===== */
+  #screen-start {
+    text-align: center;
+    padding: 30px 24px;
+    max-width: 500px;
+    width: 95%;
+    animation: fadeIn .5s ease;
+  }
+
+  .logo-risaralda {
+    width: 100px;       /* tamaño pequeño */
+  height: auto;
+  margin-bottom: 14px; 
+  text-align: center; 
+  border-radius: 10px;
+  }
+
+  #screen-start .logo {
+    font-size: 4rem; margin-bottom: 5px; display: block;
+    animation: float 1s ease-in-out infinite;
+  }
+
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+  @keyframes fadeIn { from{opacity:0;transform:scale(.95)} to{opacity:1;transform:scale(1)} }
+
+  #screen-start h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 7vw, 3rem);
+    color: #fff;
+    text-shadow: 0 0 20px rgba(100,200,255,0.6);
+    margin-bottom: 6px;
+  }
+
+  #screen-start p {
+    color: #a0c4ff; font-size: 1rem;
+    font-weight: 700; margin-bottom: 20px; line-height: 1.5;
+  }
+
+  .tip-card {
+    background: rgba(69, 204, 170, 0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 14px; padding: 10px 14px; margin: 7px 0;
+    font-size: 0.93rem; font-weight: 700; color: #e0f0ff;
+    text-align: left; backdrop-filter: blur(4px);
+  }
+  .tip-card span { margin-right: 6px; font-size: 1.1rem; }
+
+  #btn-play {
+    margin-top: 22px; padding: 18px 50px; border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+    color: #fff; font-family: 'Fredoka One', cursive; font-size: 1.5rem;
+    cursor: pointer; box-shadow: 0 0 30px rgba(0,210,255,0.4);
+    transition: transform .15s, box-shadow .15s;
+    width: 100%; max-width: 300px;
+  }
+  #btn-play:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(0,210,255,0.6); }
+
+  /* ===== PANTALLA JUEGO ===== */
+  #screen-game { display: none; width: 100%; flex-direction: column; align-items: center; }
+
+  #hud {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%; max-width: 1000px; padding: 8px 16px;
+    color: #fff; font-weight: 800; font-size: 1rem;
+  }
+  #hud-vidas { font-size: 1.2rem; letter-spacing: 2px; }
+  #hud-score { font-family: 'Fredoka One', cursive; font-size: 1.3rem; color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.5); }
+  #hud-nivel { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 4px 14px; font-size: 0.85rem; }
+  #hud-logo { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+
+  /* Canvas wrapper */
+  #canvas-wrap {
+    width: 100%;
+    max-width: 1000px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 40px rgba(0,150,255,0.3);
+    position: relative;  /* necesario para el overlay absoluto */
+  }
+
+  canvas { display: block; width: 100%; height: auto; }
+
+  /* ──────────────────────────────────────────
+     QUIZ OVERLAY
+     Ocupa todo el canvas-wrap con position:absolute inset:0
+     Dividido en 3 zonas: top / medio / bottom
+     justify-content:space-between garantiza que bottom
+     (donde vive el botón continuar) siempre sea visible.
+  ────────────────────────────────────────── */
+  #quiz-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;                         /* cubre todo el canvas */
+    background: rgba(8, 8, 28, 0.96);
+    border-radius: 16px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;   /* top / center / bottom bien separados */
+    padding: 26px 24px 22px;
+    z-index: 10;
+    overflow: hidden;                 /* sin scroll interno */
+  }
+  #quiz-overlay.show { display: flex; animation: fadeIn .25s ease; }
+
+  /* Zona superior: emoji + pregunta */
+  #quiz-top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  #quiz-emoji {
+    font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+    line-height: 1;
+  }
+
+  #quiz-pregunta {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.95rem, 2.4vw, 1.3rem);
+    color: #fff;
+    text-align: center;
+    line-height: 1.35;
+  }
+
+  /* Zona central: opciones — toma el espacio disponible entre top y bottom */
+  #quiz-opciones {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 700px;
+    gap: 7px;
+    flex: 1;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .quiz-btn {
+    display: block;
+    width: 100%;
+    padding: clamp(9px, 1.4vw, 13px) 16px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.08);
+    color: #e0f0ff;
+    font-family: 'Nunito', sans-serif;
+    font-size: clamp(0.8rem, 1.7vw, 0.97rem);
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: all .15s;
+    line-height: 1.4;
+  }
+  .quiz-btn:hover:not(:disabled) { background: rgba(0,210,255,0.2); border-color: rgba(0,210,255,0.5); }
+  .quiz-btn.ok  { background: rgba(0,220,100,0.25); border-color: #00dc64; color: #b3ffda; }
+  .quiz-btn.mal { background: rgba(220,50,50,0.25);  border-color: #ef4444; color: #ffc5c5; }
+
+  /* Zona inferior: feedback + botón — siempre anclados al fondo */
+  #quiz-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  #quiz-feedback {
+    display: none;
+    padding: 11px 18px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: clamp(0.8rem, 1.7vw, 0.95rem);
+    line-height: 1.4;
+    text-align: center;
+    width: 100%;
+  }
+  #quiz-feedback.ok  { background: rgba(0,220,100,0.15); color: #b3ffda; border: 1px solid rgba(0,220,100,0.3); display: block; }
+  #quiz-feedback.mal { background: rgba(220,50,50,0.15);  color: #ffc5c5; border: 1px solid rgba(220,50,50,0.3);  display: block; }
+
+  /* Botón continuar — se muestra con clase .visible */
+  #quiz-continuar {
+    display: none;
+    padding: 13px 46px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50px;
+    background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.95rem, 2vw, 1.15rem);
+    cursor: pointer;
+    transition: transform .1s, box-shadow .1s;
+    box-shadow: 0 0 28px rgba(0,210,255,0.55);
+    letter-spacing: 0.5px;
+  }
+  #quiz-continuar:hover  { transform: scale(1.06); box-shadow: 0 0 38px rgba(0,210,255,0.8); }
+  #quiz-continuar:active { transform: scale(0.96); }
+  #quiz-continuar.visible { display: block; }
+
+  /* Botón saltar mobile */
+  #btn-jump {
+    display: none;
+    margin-top: 14px; padding: 18px 60px; border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: #fff; font-family: 'Fredoka One', cursive; font-size: 1.4rem;
+    cursor: pointer; box-shadow: 0 0 20px rgba(240,93,251,0.4);
+    transition: transform .1s; width: 90%; max-width: 340px; text-align: center;
+  }
+  #btn-jump:active { transform: scale(0.95); }
+
+  #instruccion {
+    color: rgba(160,196,255,0.7); font-size: 0.78rem; font-weight: 700;
+    margin-top: 10px; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* ===== PANTALLA FIN ===== */
+  #screen-end {
+    display: none; text-align: center;
+    padding: 30px 20px; max-width: 480px; width: 95%;
+    animation: fadeIn .4s ease;
+  }
+  #screen-end .emoji-end { font-size: 5rem; display: block; margin-bottom: 12px; animation: float 2s ease-in-out infinite; }
+  #screen-end h2 { font-family: 'Fredoka One', cursive; font-size: 2.2rem; color: #fff; margin-bottom: 10px; }
+  #screen-end p  { color: #a0c4ff; font-size: 1rem; font-weight: 700; margin-bottom: 8px; line-height: 1.5; }
+
+  .score-box {
+    background: rgba(255,215,0,0.12); border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 16px; padding: 14px 20px; margin: 14px 0;
+  }
+  .score-box span { font-family: 'Fredoka One', cursive; font-size: 2.5rem; color: #FFD700; }
+  .score-box p    { color: #ffe080; font-size: 0.85rem; margin: 0; }
+
+  .consejo-end {
+    background: rgba(255,255,255,0.07); border-radius: 14px;
+    padding: 14px; margin: 12px 0; font-size: 0.9rem; font-weight: 700;
+    color: #c8e6ff; line-height: 1.5; text-align: left;
+    border-left: 4px solid #00d2ff;
+  }
+
+  #btn-retry {
+    margin-top: 16px; padding: 16px 44px; border: none; border-radius: 50px;
+    background: linear-gradient(135deg, #f093fb, #f5576c);
+    color: #fff; font-family: 'Fredoka One', cursive; font-size: 1.3rem;
+    cursor: pointer; box-shadow: 0 0 20px rgba(240,93,251,0.4);
+    transition: transform .15s; width: 100%; max-width: 280px;
+  }
+  #btn-retry:hover { transform: scale(1.05); }
+
+  .conf {
+    position: fixed; width: 10px; height: 10px; top: -12px;
+    border-radius: 2px; pointer-events: none; z-index: 999;
+    animation: confCae linear forwards;
+  }
+  @keyframes confCae { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
+</style>
+</head>
+<body>
+
+<!-- PANTALLA INICIO -->
+<div id="screen-start">
+  <img src="img/logo-risaralda.png" alt="Logo Risaralda" class="logo-risaralda">
+  <span class="logo">🏃</span>
+  <h1>Guardián Digital</h1>
+  <p>¡Corre, salta y esquiva los peligros del internet!<br>Responde preguntas para ganar escudos. 🛡️</p>
+  <div class="tip-card"><span>⬆️</span> Presiona <strong>ESPACIO</strong>, flecha arriba o toca la pantalla para saltar</div>
+  <div class="tip-card"><span>❓</span> Recoge los <strong>signos de pregunta</strong> para obtener puntos extras</div>
+  <div class="tip-card"><span>💀</span> Esquiva: virus, mensajes de odio, cadenas y perfiles falsos</div>
+  <div class="tip-card"><span>🛡️</span> Tienes <strong>3 vidas</strong>. ¡Llega al final de cada nivel!</div>
+  <button id="btn-play" onclick="startGame()">¡Jugar! 🚀</button>
+</div>
+
+<!-- PANTALLA JUEGO -->
+<div id="screen-game">
+  <div id="hud">
+    <div id="hud-vidas">❤️❤️❤️</div>
+    <div id="hud-score">0 pts</div>
+    <div id="hud-nivel">Nivel 1</div>
+    <div id="hud-logo">
+      <img src="img/logo-risaralda.png" alt="Logo Risaralda" style="width:100%;height:100%;object-fit:contain;">
+    </div>
+  </div>
+
+  <div id="canvas-wrap">
+    <!-- Canvas 1000×520: espacio extra para que el quiz respire -->
+    <canvas id="gameCanvas" width="1000" height="520"></canvas>
+
+    <!-- QUIZ OVERLAY — 3 zonas: top | opciones | bottom(feedback+continuar) -->
+    <div id="quiz-overlay">
+
+      <div id="quiz-top">
+        <span id="quiz-emoji">❓</span>
+        <div id="quiz-pregunta"></div>
+      </div>
+
+      <div id="quiz-opciones"></div>
+
+      <div id="quiz-bottom">
+        <div id="quiz-feedback"></div>
+        <button id="quiz-continuar" onclick="cerrarQuiz()">¡Continuar! ▶️</button>
+      </div>
+
+    </div>
+  </div>
+
+  <button id="btn-jump" ontouchstart="jump()" onclick="jump()">⬆️ ¡SALTAR!</button>
+  <div id="instruccion">ESPACIO / ↑ / TOCA para saltar</div>
+</div>
+
+<!-- PANTALLA FIN -->
+<div id="screen-end">
+  <span class="emoji-end" id="end-emoji">🏆</span>
+  <h2 id="end-titulo">¡Misión cumplida!</h2>
+  <div class="score-box">
+    <span id="end-score">0</span>
+    <p>puntos totales</p>
+  </div>
+  <p id="end-desc"></p>
+  <div class="consejo-end" id="end-consejo"></div>
+  <button id="btn-retry" onclick="resetGame()">🔄 Jugar de nuevo</button>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+const W = 1000, H = 520;   /* canvas más alto → más espacio para el quiz */
+
+const SKY_TOP = '#0f2027', SKY_BOT = '#203a43';
+const GROUND_COL = '#1a3a5c', GROUND_LINE = '#2a5a8c';
+
+let gameState = 'idle';
+let score = 0, vidas = 3, nivel = 1;
+let frameCount = 0, speed = 4, spawnTimer = 0, spawnInterval = 90;
+let quizActivo = false, audioCtx = null;
+
+const GROUND_Y = H - 80;
+const player = {
+  x:90, y:GROUND_Y, w:44, h:56,
+  vy:0, onGround:true, invincible:0, shield:0
+};
+
+const GRAVITY = 0.58, JUMP_FORCE = -15;
+
+function jump() {
+  if (player.onGround && gameState === 'running') {
+    player.vy = JUMP_FORCE; player.onGround = false; playSound('jump');
+  }
+}
+
+const TIPOS_OBS = [
+  {id:'virus',  emoji:'🦠', w:42, h:42, isBonus:false},
+  {id:'hate',   emoji:'💬', w:46, h:42, isBonus:false},
+  {id:'cadena', emoji:'⛓️', w:40, h:40, isBonus:false},
+  {id:'fake',   emoji:'👤', w:40, h:48, isBonus:false},
+];
+const TIPOS_BONUS = [
+  {id:'quiz',     emoji:'❓', w:38, h:38, pts:30, isBonus:true},
+  {id:'escudo',   emoji:'🛡️', w:38, h:38, pts:20, isBonus:true},
+  {id:'estrella', emoji:'⭐', w:34, h:34, pts:15, isBonus:true},
+];
+
+let obstacles = [];
+
+function spawnItem() {
+  if (Math.random() < 0.55) {
+    const t = TIPOS_OBS[~~(Math.random()*TIPOS_OBS.length)];
+    obstacles.push({...t, x:W+20, y:GROUND_Y+(player.h-t.h)});
+    if (nivel>=3 && Math.random()<0.3) {
+      const t2 = TIPOS_OBS[~~(Math.random()*TIPOS_OBS.length)];
+      obstacles.push({...t2, x:W+160, y:GROUND_Y+(player.h-t2.h)});
+    }
+  } else {
+    const t = TIPOS_BONUS[~~(Math.random()*TIPOS_BONUS.length)];
+    obstacles.push({...t, x:W+20, y: Math.random()<0.5 ? GROUND_Y-80 : GROUND_Y+(player.h-t.h)});
+  }
+}
+
+let particles = [];
+function emitParticles(x,y,col,n=10){
+  for(let i=0;i<n;i++) particles.push({
+    x,y, vx:(Math.random()-.5)*5, vy:(Math.random()-.5)*5, life:40, col, r:4+Math.random()*4
+  });
+}
+
+const stars = Array.from({length:70},()=>({
+  x:Math.random()*W, y:Math.random()*(H-100),
+  r:Math.random()*1.5+0.3, b:Math.random()
+}));
+let clouds = [
+  {x:200,y:50,w:100,s:0.4},{x:520,y:30,w:80,s:0.6},{x:760,y:65,w:70,s:0.3}
+];
+
+function drawRoundRect(x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+}
+function drawEmoji(e,x,y,size=36){
+  ctx.font=`${size}px serif`; ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(e,x,y);
+}
+
+function drawBG(){
+  const grad=ctx.createLinearGradient(0,0,0,H-60);
+  grad.addColorStop(0,SKY_TOP); grad.addColorStop(1,SKY_BOT);
+  ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+  stars.forEach(s=>{
+    const a=0.35+0.35*Math.sin(frameCount*0.02+s.b*6.28);
+    ctx.fillStyle=`rgba(255,255,255,${a})`;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  });
+  clouds.forEach(c=>{
+    ctx.fillStyle='rgba(255,255,255,0.08)';
+    ctx.beginPath();
+    ctx.ellipse(c.x,c.y,c.w*.5,c.w*.22,0,0,Math.PI*2);
+    ctx.ellipse(c.x-20,c.y+6,c.w*.3,c.w*.17,0,0,Math.PI*2);
+    ctx.ellipse(c.x+22,c.y+8,c.w*.28,c.w*.15,0,0,Math.PI*2);
+    ctx.fill();
+    c.x-=c.s; if(c.x+c.w<0) c.x=W+c.w;
+  });
+  ctx.fillStyle=GROUND_COL; ctx.fillRect(0,H-72,W,72);
+  ctx.fillStyle=GROUND_LINE; ctx.fillRect(0,H-72,W,3);
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+  for(let i=0;i<10;i++){
+    const px=(frameCount*speed*.5+i*100)%W;
+    ctx.beginPath(); ctx.moveTo(px,H-68); ctx.lineTo(px-35,H-10); ctx.stroke();
+  }
+}
+
+function drawPlayer(){
+  const {x,y,w,h,shield,invincible}=player;
+  if(invincible>0 && Math.floor(frameCount/4)%2===0) return;
+  if(shield>0){
+    ctx.save(); ctx.globalAlpha=0.4+0.2*Math.sin(frameCount*.15);
+    ctx.strokeStyle='#00d2ff'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.arc(x+w/2,y+h/2,w*.78,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1; ctx.restore();
+  }
+  drawRoundRect(x+6,y,w-12,h*.45,12,'#4fc3f7','#0288d1');
+  drawRoundRect(x+10,y+5,w-20,h*.32,8,'#fff9e6');
+  ctx.fillStyle='#1a237e';
+  ctx.beginPath(); ctx.arc(x+15,y+15,3.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+w-15,y+15,3.5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#e91e63'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(x+w/2,y+21,6,0.1*Math.PI,0.9*Math.PI); ctx.stroke();
+  drawRoundRect(x+4,y+h*.44,w-8,h*.35,6,'#3a7bd5','#1a5cb5');
+  ctx.font='16px serif'; ctx.textAlign='center'; ctx.fillText('🛡',x+w/2,y+h*.67);
+  const lp=player.onGround?Math.sin(frameCount*.3)*8:0;
+  ctx.fillStyle='#1565c0';
+  ctx.fillRect(x+8,y+h*.78,12,h*.22+lp*.5);
+  ctx.fillRect(x+w-20,y+h*.78,12,h*.22-lp*.5);
+  ctx.fillStyle='#0d47a1';
+  ctx.fillRect(x+6,y+h-5,15,5); ctx.fillRect(x+w-21,y+h-5,15,5);
+}
+
+function drawObstacles(){
+  obstacles.forEach(ob=>{
+    const cx=ob.x+ob.w/2, cy=ob.y+ob.h/2;
+    ctx.save();
+    if(!ob.isBonus){
+      ctx.globalAlpha=0.25; ctx.fillStyle='#ef4444';
+      ctx.beginPath(); ctx.arc(cx,cy,ob.w*.65,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.globalAlpha=0.15+0.1*Math.sin(frameCount*.12);
+      ctx.fillStyle=ob.id==='quiz'?'#FFD700':'#00d2ff';
+      ctx.beginPath(); ctx.arc(cx,cy,ob.w*.85,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=1; ctx.restore();
+    drawEmoji(ob.emoji,cx,ob.y+ob.h,ob.w);
+  });
+}
+
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life/40; ctx.fillStyle=p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+function checkCollisions(){
+  const px=player.x+6, py=player.y+4, pw=player.w-12, ph=player.h-4;
+  obstacles=obstacles.filter(ob=>{
+    const hit=px<ob.x+ob.w-4 && px+pw>ob.x+4 && py<ob.y+ob.h-4 && py+ph>ob.y+4;
+    if(!hit) return true;
+    if(ob.isBonus){
+      score+=ob.pts; emitParticles(ob.x+ob.w/2,ob.y+ob.h/2,'#FFD700',12); playSound('coin');
+      if(ob.id==='quiz') lanzarQuiz();
+      else if(ob.id==='escudo') player.shield=200;
+      updateHUD(); return false;
+    } else {
+      if(player.invincible>0||player.shield>0){
+        emitParticles(ob.x+ob.w/2,ob.y+ob.h/2,'#4fc3f7',8);
+        if(player.shield>0) player.shield=Math.max(0,player.shield-60);
+        return false;
+      }
+      vidas--; player.invincible=120;
+      emitParticles(ob.x+ob.w/2,ob.y+ob.h/2,'#ef4444',14);
+      playSound('hit'); updateHUD();
+      if(vidas<=0) setTimeout(()=>gameOver(),200);
+      return false;
+    }
+  });
+}
+
+/* ── QUIZ ── */
+const PREGUNTAS = [
+  {emoji:'📸', q:'¿Qué debes hacer si alguien te manda mensajes de ciberacoso?',
+   ops:['Guardar capturas como evidencia y contarle a un adulto','Responderle con insultos','Borrarlo y olvidarlo','Compartirlo con todos'], c:0,
+   ok:'✅ ¡Correcto! Guarda siempre las pruebas y pide ayuda a un adulto. ¡+30 puntos!',
+   mal:'❌ Lo correcto es guardar las evidencias y contárselo a un adulto de confianza.'},
+  {emoji:'🔐', q:'¿A quién le debes dar tu contraseña?',
+   ops:['A tu mejor amigo/a','A nadie, las contraseñas son secretas','Al administrador de cualquier juego','A quien te pida ayuda'], c:1,
+   ok:'✅ ¡Exacto! Las contraseñas son PRIVADAS. ¡Ni siquiera a tus amigos! +30 puntos.',
+   mal:'❌ ¡Las contraseñas son secretas! Nadie debe conocer tus contraseñas, ni tu mejor amigo.'},
+  {emoji:'👤', q:'Un desconocido en internet dice ser de tu edad y pide chatear. ¿Qué haces?',
+   ops:['Acepto y le cuento todo de mí','Rechazo la solicitud y aviso a mis papás','Acepto pero no le doy mi dirección','Lo dejo para después'], c:1,
+   ok:'✅ ¡Muy bien! Rechaza contactos desconocidos y avisa a un adulto. ¡+30 puntos!',
+   mal:'❌ Rechaza siempre solicitudes de desconocidos y avísale a un adulto de confianza.'},
+  {emoji:'🆘', q:'Si sufres ciberacoso, ¿a quién debes contárselo?',
+   ops:['A nadie, me lo guardo','Solo a mi mejor amigo','A mis papás, profe u otro adulto de confianza','Lo publico en redes para que todos sepan'], c:2,
+   ok:'✅ ¡Correcto! Tus papás y profesores están para protegerte. ¡+30 puntos!',
+   mal:'❌ Siempre cuéntaselo a un adulto de confianza: papás, profesores o cuidadores.'},
+  {emoji:'📰', q:'Ves una noticia increíble en internet. Antes de compartirla debes...',
+   ops:['Compartirla de inmediato','Compartirla si tiene muchos likes','Verificar si es verdadera y la fuente es confiable','Creerla si tiene foto'], c:2,
+   ok:'✅ ¡Bien! Siempre verifica antes de compartir. ¡No todo en internet es verdad! +30 pts.',
+   mal:'❌ Antes de compartir, verifica la fuente. Las noticias falsas hacen mucho daño.'},
+  {emoji:'🤫', q:'Un adulto que conociste en internet te pide guardar un secreto. Eso es...',
+   ops:['Normal entre amigos','Una señal de peligro. Los adultos buenos no piden secretos a niños','Una sorpresa bonita','Una señal de confianza'], c:1,
+   ok:'✅ ¡Exacto! Eso es una señal de peligro. Cuéntaselo a tus papás inmediatamente. +30 pts.',
+   mal:'❌ ¡Cuidado! Los adultos de confianza NUNCA piden secretos a los niños. Es una alerta.'},
+  {emoji:'💬', q:'Un amigo publica una foto tuya sin pedirte permiso y te molesta. ¿Qué haces?',
+   ops:['Publico fotos de él para vengarme','Le pido que la borre y si no lo hace, aviso a un adulto','Lo ignoro para no pelear','Comparto la foto yo también'], c:1,
+   ok:'✅ ¡Correcto! Primero habla con tu amigo. Si no soluciona, un adulto puede ayudar. +30 pts.',
+   mal:'❌ Lo mejor es pedirle que la borre y si no funciona, buscar la ayuda de un adulto.'},
+];
+
+let preguntasUsadas = [];
+
+function lanzarQuiz(){
+  gameState='quiz'; quizActivo=true;
+  if(preguntasUsadas.length>=PREGUNTAS.length) preguntasUsadas=[];
+  let idx; do{idx=~~(Math.random()*PREGUNTAS.length);}while(preguntasUsadas.includes(idx));
+  preguntasUsadas.push(idx);
+  const p=PREGUNTAS[idx];
+
+  document.getElementById('quiz-emoji').textContent=p.emoji;
+  document.getElementById('quiz-pregunta').textContent=p.q;
+
+  const fb=document.getElementById('quiz-feedback');
+  fb.className=''; fb.style.display='none'; fb.textContent='';
+
+  const cont=document.getElementById('quiz-continuar');
+  cont.classList.remove('visible');
+
+  const zona=document.getElementById('quiz-opciones');
+  zona.innerHTML='';
+  p.ops.forEach((op,i)=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-btn';
+    btn.textContent=['🅐','🅑','🅒','🅓'][i]+' '+op;
+    btn.onclick=()=>responderQuiz(i,p,btn,zona.querySelectorAll('.quiz-btn'));
+    zona.appendChild(btn);
+  });
+
+  document.getElementById('quiz-overlay').classList.add('show');
+}
+
+function responderQuiz(idx,p,btnElegido,todos){
+  todos.forEach(b=>b.disabled=true);
+  todos[p.c].classList.add('ok');
+  const fb=document.getElementById('quiz-feedback');
+  if(idx===p.c){
+    btnElegido.classList.add('ok');
+    fb.className='ok'; fb.textContent=p.ok;
+    score+=30; player.shield=180; playSound('quiz_ok');
+  } else {
+    btnElegido.classList.add('mal');
+    fb.className='mal'; fb.textContent=p.mal;
+    playSound('hit');
+  }
+  updateHUD();
+  /* El botón continuar aparece siempre en #quiz-bottom, nunca se corta */
+  document.getElementById('quiz-continuar').classList.add('visible');
+}
+
+function cerrarQuiz(){
+  document.getElementById('quiz-overlay').classList.remove('show');
+  quizActivo=false; gameState='running';
+}
+
+/* ── AUDIO ── */
+function initAudio(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); }
+function playSound(type){
+  try{
+    initAudio();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    const t=audioCtx.currentTime;
+    switch(type){
+      case 'jump':    o.type='sine';     o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(600,t+.12); g.gain.setValueAtTime(.1,t); g.gain.linearRampToValueAtTime(0,t+.15); o.start(t);o.stop(t+.15); break;
+      case 'coin':    o.type='sine';     o.frequency.setValueAtTime(523,t); o.frequency.setValueAtTime(659,t+.07); o.frequency.setValueAtTime(784,t+.14); g.gain.setValueAtTime(.1,t); g.gain.linearRampToValueAtTime(0,t+.25); o.start(t);o.stop(t+.25); break;
+      case 'hit':     o.type='sawtooth'; o.frequency.setValueAtTime(200,t); o.frequency.linearRampToValueAtTime(80,t+.2); g.gain.setValueAtTime(.08,t); g.gain.linearRampToValueAtTime(0,t+.2); o.start(t);o.stop(t+.2); break;
+      case 'quiz_ok': o.type='sine';     [523,659,784,1047].forEach((f,i)=>o.frequency.setValueAtTime(f,t+i*.1)); g.gain.setValueAtTime(.1,t); g.gain.linearRampToValueAtTime(0,t+.45); o.start(t);o.stop(t+.45); break;
+      case 'win':     o.type='sine';     [523,659,784,1047,1319].forEach((f,i)=>o.frequency.setValueAtTime(f,t+i*.08)); g.gain.setValueAtTime(.08,t); g.gain.linearRampToValueAtTime(0,t+.6); o.start(t);o.stop(t+.6); break;
+    }
+  }catch(e){}
+}
+
+function updateHUD(){
+  document.getElementById('hud-vidas').textContent='❤️'.repeat(Math.max(0,vidas))+'🖤'.repeat(Math.max(0,3-vidas));
+  document.getElementById('hud-score').textContent=score+' pts';
+  document.getElementById('hud-nivel').textContent='Nivel '+nivel;
+}
+
+let nivelAnterior=1;
+function checkNivel(){
+  if(nivel===1&&frameCount>600) {nivel=2;speed=5.5;spawnInterval=78;}
+  if(nivel===2&&frameCount>1400){nivel=3;speed=7;  spawnInterval=65;}
+  if(nivel===3&&frameCount>2400){nivel=4;speed=8.5;spawnInterval=52;}
+  if(nivel===4&&frameCount>3600){gameWin();return;}
+  if(nivel!==nivelAnterior){nivelAnterior=nivel;updateHUD();}
+}
+
+function gameOver(){
+  gameState='dead';
+  document.getElementById('screen-game').style.display='none';
+  document.getElementById('screen-end').style.display='block';
+  const pct=score/400;
+  document.getElementById('end-emoji').textContent =pct>=.8?'🥈':pct>=.4?'💡':'📚';
+  document.getElementById('end-titulo').textContent=pct>=.8?'¡Buen intento!':pct>=.4?'¡Sigue practicando!':'¡Hay que estudiar!';
+  document.getElementById('end-score').textContent =score;
+  document.getElementById('end-desc').textContent  =pct>=.8?'¡Casi lo logras! Tus reflejos mejoran.':pct>=.4?'Los peligros del internet son reales. ¡Inténtalo de nuevo!':'El internet puede ser peligroso. ¡Vuelve a intentarlo!';
+  document.getElementById('end-consejo').textContent='💡 Recuerda: ante el ciberacoso, NO respondas al agresor, GUARDA las pruebas y PIDE ayuda a un adulto de confianza. ¡Tú no estás solo!';
+}
+
+function gameWin(){
+  gameState='win'; playSound('win'); confetti();
+  document.getElementById('screen-game').style.display='none';
+  document.getElementById('screen-end').style.display='block';
+  document.getElementById('end-emoji').textContent ='🏆';
+  document.getElementById('end-titulo').textContent='¡Misión cumplida, Guardián Digital!';
+  document.getElementById('end-score').textContent =score;
+  document.getElementById('end-desc').textContent  ='¡Completaste los 4 niveles! Eres un verdadero héroe digital. 🌟';
+  document.getElementById('end-consejo').textContent='🛡️ Comparte lo aprendido: guardar evidencias, pedir ayuda a adultos y nunca compartir datos personales son tus mejores armas en internet.';
+}
+
+function gameLoop(){
+  if(gameState==='dead'||gameState==='win') return;
+  requestAnimationFrame(gameLoop);
+  if(gameState==='quiz'){drawBG();drawObstacles();drawParticles();drawPlayer();return;}
+  frameCount++; checkNivel();
+  player.vy+=GRAVITY; player.y+=player.vy;
+  if(player.y>=GROUND_Y){player.y=GROUND_Y;player.vy=0;player.onGround=true;}
+  if(player.invincible>0) player.invincible--;
+  if(player.shield>0) player.shield--;
+  spawnTimer++; if(spawnTimer>=spawnInterval){spawnTimer=0;spawnItem();}
+  obstacles.forEach(ob=>ob.x-=speed);
+  obstacles=obstacles.filter(ob=>ob.x+ob.w>-20);
+  particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life--;});
+  particles=particles.filter(p=>p.life>0);
+  if(frameCount%8===0){score++;updateHUD();}
+  checkCollisions();
+  drawBG(); drawObstacles(); drawParticles(); drawPlayer();
+}
+
+function confetti(){
+  const cols=['#FFD700','#00d2ff','#f5576c','#43e97b','#a855f7'];
+  for(let i=0;i<80;i++){
+    const el=document.createElement('div'); el.className='conf';
+    el.style.cssText=`left:${Math.random()*100}vw;background:${cols[~~(Math.random()*cols.length)]};animation-duration:${1.5+Math.random()*2.5}s;animation-delay:${Math.random()}s;`;
+    document.body.appendChild(el); setTimeout(()=>el.remove(),5000);
+  }
+}
+
+function startGame(){
+  initAudio();
+  document.getElementById('screen-start').style.display='none';
+  document.getElementById('screen-game').style.display='flex';
+  if('ontouchstart' in window) document.getElementById('btn-jump').style.display='block';
+  resetVars(); gameState='running'; updateHUD(); gameLoop();
+}
+
+function resetGame(){
+  document.getElementById('screen-end').style.display='none';
+  document.getElementById('screen-game').style.display='flex';
+  if('ontouchstart' in window) document.getElementById('btn-jump').style.display='block';
+  resetVars(); gameState='running'; updateHUD(); gameLoop();
+}
+
+function resetVars(){
+  score=0;vidas=3;nivel=1;nivelAnterior=1;
+  frameCount=0;speed=4;spawnTimer=0;spawnInterval=90;
+  obstacles=[];particles=[];preguntasUsadas=[];
+  player.y=GROUND_Y;player.vy=0;player.onGround=true;
+  player.invincible=0;player.shield=0;
+  document.getElementById('quiz-overlay').classList.remove('show');
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();jump();}
+});
+document.addEventListener('touchstart',e=>{
+  if(gameState==='running'){e.preventDefault();jump();}
+},{passive:false});
+</script>
+</body>
+</html>

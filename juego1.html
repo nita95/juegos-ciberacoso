@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🛡️ Quiz: ¡Protégete en Internet!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&display=swap');
+
+  :root {
+    --azul:    #2563EB;
+    --morado:  #7C3AED;
+    --rosa:    #EC4899;
+    --verde:   #10B981;
+    --rojo:    #EF4444;
+    --amarillo:#F59E0B;
+    --fondo:   #EFF6FF;
+    --blanco:  #FFFFFF;
+    --texto:   #1E3A5F;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--fondo);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(124,58,237,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 90% 80%, rgba(37,99,235,0.08) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: bajada 0.6s ease;
+  }
+
+  @keyframes bajada {
+    from { opacity: 0; transform: translateY(-30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  header h1 {
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 900;
+    color: var(--azul);
+    line-height: 1.2;
+  }
+
+  header p {
+    font-size: 1rem;
+    color: var(--texto);
+    margin-top: 6px;
+    font-weight: 700;
+  }
+
+  /* Estrellas / puntaje */
+  #puntos-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--blanco);
+    border-radius: 40px;
+    padding: 8px 20px;
+    box-shadow: 0 4px 15px rgba(37,99,235,0.15);
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--texto);
+  }
+
+  #stars-display { font-size: 1.4rem; letter-spacing: 2px; }
+
+  /* Progreso */
+  #progreso-wrap {
+    width: 100%;
+    max-width: 620px;
+    background: #DBEAFE;
+    border-radius: 20px;
+    height: 14px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+
+  #progreso-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--azul), var(--morado));
+    border-radius: 20px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* Tarjeta de pregunta */
+  #card {
+    background: var(--blanco);
+    border-radius: 24px;
+    box-shadow: 0 8px 30px rgba(37,99,235,0.13);
+    padding: 30px;
+    max-width: 620px;
+    width: 100%;
+    animation: aparecer 0.4s ease;
+  }
+
+  @keyframes aparecer {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  #num-pregunta {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--morado);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  #emoji-pregunta { font-size: 3rem; margin-bottom: 10px; display: block; }
+
+  #texto-pregunta {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--texto);
+    line-height: 1.4;
+    margin-bottom: 24px;
+  }
+
+  .opcion {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #F0F4FF;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--texto);
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1.4;
+  }
+
+  .opcion:hover:not(:disabled) {
+    background: #DBEAFE;
+    border-color: var(--azul);
+    transform: translateX(4px);
+  }
+
+  .opcion.correcta {
+    background: #D1FAE5;
+    border-color: var(--verde);
+    color: #065F46;
+  }
+
+  .opcion.incorrecta {
+    background: #FEE2E2;
+    border-color: var(--rojo);
+    color: #991B1B;
+  }
+
+  /* Feedback */
+  #feedback {
+    display: none;
+    margin-top: 18px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.4;
+    animation: aparecer 0.3s ease;
+  }
+
+  #feedback.ok  { background: #D1FAE5; color: #065F46; border-left: 6px solid var(--verde); }
+  #feedback.mal { background: #FEE2E2; color: #991B1B; border-left: 6px solid var(--rojo); }
+
+  #btn-siguiente {
+    display: none;
+    margin-top: 18px;
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--azul), var(--morado));
+    color: var(--blanco);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 15px rgba(37,99,235,0.3);
+  }
+
+  #btn-siguiente:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
+
+  /* Pantalla final */
+  #pantalla-final {
+    display: none;
+    background: var(--blanco);
+    border-radius: 24px;
+    box-shadow: 0 8px 30px rgba(37,99,235,0.13);
+    padding: 36px 30px;
+    max-width: 620px;
+    width: 100%;
+    text-align: center;
+    animation: aparecer 0.5s ease;
+  }
+
+  #pantalla-final .trofeo { font-size: 5rem; margin-bottom: 10px; display: block; }
+
+  #pantalla-final h2 {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--azul);
+    margin-bottom: 10px;
+  }
+
+  #pantalla-final p {
+    font-size: 1.05rem;
+    color: var(--texto);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  #resultado-estrellas { font-size: 2.5rem; margin: 16px 0; letter-spacing: 4px; }
+
+  #mensaje-final {
+    background: #EFF6FF;
+    border-radius: 16px;
+    padding: 16px;
+    margin: 16px 0;
+    font-size: 1rem;
+    color: var(--texto);
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  #btn-reiniciar {
+    padding: 16px 36px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, var(--rosa), var(--morado));
+    color: var(--blanco);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(236,72,153,0.3);
+    transition: transform 0.2s;
+    margin-top: 8px;
+  }
+
+  #btn-reiniciar:hover { transform: scale(1.05); }
+
+  /* confetti */
+  .confetti-piece {
+    position: fixed;
+    width: 10px; height: 10px;
+    top: -10px;
+    border-radius: 2px;
+    animation: caer linear forwards;
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  @keyframes caer {
+    to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Pantalla bienvenida */
+  #bienvenida {
+    background: var(--blanco);
+    border-radius: 24px;
+    box-shadow: 0 8px 30px rgba(37,99,235,0.13);
+    padding: 36px 30px;
+    max-width: 620px;
+    width: 100%;
+    text-align: center;
+    animation: aparecer 0.5s ease;
+  }
+
+ #bienvenida .emoji-grande { 
+  width: 200px;       /* tamaño pequeño */
+  height: auto;
+  margin-bottom: 14px; 
+  text-align: center; 
+}
+  #bienvenida h2 { font-size: 1.7rem; font-weight: 900; color: var(--azul); margin-bottom: 12px; }
+  #bienvenida p { font-size: 1rem; font-weight: 700; color: var(--texto); margin-bottom: 10px; line-height: 1.5; }
+
+  .regla {
+    background: #F0F4FF;
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--texto);
+    text-align: left;
+  }
+
+  #btn-empezar {
+    margin-top: 20px;
+    padding: 16px 40px;
+    border: none;
+    border-radius: 50px;
+    background: linear-gradient(135deg, var(--azul), var(--morado));
+    color: var(--blanco);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+    transition: transform 0.2s;
+  }
+
+  #btn-empezar:hover { transform: scale(1.05); }
+
+  footer {
+    margin-top: 24px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94A3B8;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🛡️ ¡Protégete en Internet!</h1>
+  <p>Quiz sobre Ciberacoso para valientes exploradores digitales</p>
+</header>
+
+<!-- BIENVENIDA -->
+<div id="bienvenida">
+  <img src="img/logo-risaralda.png" alt="Logo Risaralda" class="emoji-grande">
+  <h2>¿Estás listo para el desafío? 💪</h2>
+  <p>Pon a prueba lo que sabes sobre <strong>ciberacoso</strong> y seguridad en internet.</p>
+
+  <div class="regla">⭐ Cada respuesta correcta te da una estrella</div>
+  <div class="regla">📖 Hay 10 preguntas en total</div>
+  <div class="regla">💡 Si te equivocas, aprenderás la respuesta correcta</div>
+  <div class="regla">🏆 ¡Al final verás tu puntaje!</div>
+
+  <button id="btn-empezar" onclick="iniciar()">¡Empezar el Quiz! 🚀</button>
+</div>
+
+<!-- QUIZ -->
+<div id="puntos-bar" style="display:none;">
+  <span>⭐ Mis estrellas:</span>
+  <span id="stars-display">☆☆☆☆☆☆☆☆☆☆</span>
+</div>
+
+<div id="progreso-wrap" style="display:none;">
+  <div id="progreso-bar"></div>
+</div>
+
+<div id="card" style="display:none;">
+  <div id="num-pregunta"></div>
+  <span id="emoji-pregunta"></span>
+  <div id="texto-pregunta"></div>
+  <div id="opciones"></div>
+  <div id="feedback"></div>
+  <button id="btn-siguiente" onclick="siguiente()">Siguiente pregunta ➡️</button>
+</div>
+
+<!-- RESULTADO -->
+<div id="pantalla-final">
+  <span class="trofeo" id="emoji-final">🏆</span>
+  <h2 id="titulo-final">¡Increíble!</h2>
+  <div id="resultado-estrellas"></div>
+  <p id="puntaje-texto"></p>
+  <div id="mensaje-final"></div>
+  <button id="btn-reiniciar" onclick="reiniciar()">🔄 Jugar de nuevo</button>
+</div>
+
+<footer>🛡️ Secretaría de las TIC — Entornos Digitales Seguros</footer>
+
+<script>
+const preguntas = [
+  {
+    emoji: "😡",
+    pregunta: "¿Qué es el ciberacoso?",
+    opciones: [
+      "Cuando alguien usa internet o el celular para molestar, insultar o hacer sentir mal a otra persona.",
+      "Cuando juegas videojuegos demasiado tiempo.",
+      "Cuando ves muchos videos en YouTube.",
+      "Cuando alguien te manda muchos memes graciosos."
+    ],
+    correcta: 0,
+    feedback_ok:  "✅ ¡Muy bien! El ciberacoso es usar la tecnología para hacerle daño a alguien. ¡Tú lo sabes!",
+    feedback_mal: "❌ El ciberacoso ocurre cuando alguien usa internet o el celular para molestar, insultar o hacer sentir mal a otra persona. ¡Recuérdalo!"
+  },
+  {
+    emoji: "📱",
+    pregunta: "Alguien que no conoces te manda mensajes extraños y te pide tu dirección de casa. ¿Qué haces?",
+    opciones: [
+      "Le doy mi dirección, tal vez es buena persona.",
+      "Le respondo con mi número de teléfono.",
+      "No le respondo y se lo cuento a un adulto de confianza.",
+      "Le mando fotos mías para hacerme amigo de él."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Excelente decisión! Nunca compartas datos personales y siempre avisa a un adulto.",
+    feedback_mal: "❌ Lo correcto es NO responder y contarle a un adulto de confianza. ¡Tu seguridad es primero!"
+  },
+  {
+    emoji: "📸",
+    pregunta: "Un compañero te envía mensajes feos e insultos por WhatsApp. ¿Qué DEBES hacer con esos mensajes?",
+    opciones: [
+      "Borrarlos de inmediato para no verlos.",
+      "Guardarlos como evidencia para mostrarlos a un adulto de confianza.",
+      "Responderle con insultos peores.",
+      "Compartirlos con todos tus amigos."
+    ],
+    correcta: 1,
+    feedback_ok:  "✅ ¡Correcto! Guardar las pruebas (capturas de pantalla) es muy importante para pedir ayuda.",
+    feedback_mal: "❌ Lo correcto es GUARDAR los mensajes como evidencia. Esas pruebas ayudan a que los adultos puedan resolver el problema."
+  },
+  {
+    emoji: "🤫",
+    pregunta: "Un adulto que conociste en internet te pide guardar un secreto sobre lo que hablan. ¿Eso es...?",
+    opciones: [
+      "Normal, los amigos guardan secretos.",
+      "Una señal de alerta. Los adultos de confianza no piden secretos a los niños.",
+      "Algo divertido y emocionante.",
+      "Una forma de hacer una sorpresa bonita."
+    ],
+    correcta: 1,
+    feedback_ok:  "✅ ¡Muy bien! Si un adulto te pide guardar secretos, eso es una señal de peligro. ¡Cuéntaselo a tus papás o profesores!",
+    feedback_mal: "❌ Cuidado: los adultos de confianza NUNCA piden secretos a los niños. Eso es una señal de alerta. ¡Cuéntaselo a alguien de confianza!"
+  },
+  {
+    emoji: "🔐",
+    pregunta: "¿Cuál de estas cosas NUNCA debes compartir en internet?",
+    opciones: [
+      "Tu canción favorita.",
+      "Una foto de tu mascota.",
+      "Tu contraseña, dirección y número de teléfono.",
+      "El nombre de tu equipo de fútbol favorito."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Muy bien! La contraseña, dirección y datos personales son privados. ¡Nunca los compartas!",
+    feedback_mal: "❌ ¡Recuerda! Tu contraseña, dirección y teléfono son datos PRIVADOS. Compartirlos puede ponerte en peligro."
+  },
+  {
+    emoji: "😰",
+    pregunta: "Un amigo te manda un mensaje que te hace sentir raro o incómodo. ¿Qué haces?",
+    opciones: [
+      "Lo ignoro y no le digo a nadie.",
+      "Respondo de la misma forma para defenderme.",
+      "Escucho mis sentimientos, no respondo y busco ayuda de un adulto.",
+      "Publico el mensaje en redes sociales."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Correcto! Tus sentimientos son importantes. Si algo te incomoda, busca ayuda de un adulto.",
+    feedback_mal: "❌ Lo correcto es confiar en tus sentimientos, no responder y pedir ayuda a un adulto de confianza como tus papás o un profesor."
+  },
+  {
+    emoji: "📰",
+    pregunta: "Ves una noticia muy impactante en redes sociales. Antes de compartirla, ¿qué debes hacer?",
+    opciones: [
+      "Compartirla de inmediato con todos mis amigos.",
+      "Verificar si es verdad, quién la publicó y si la fuente es confiable.",
+      "Compartirla si tiene muchos 'me gusta'.",
+      "Creerla porque tiene una foto llamativa."
+    ],
+    correcta: 1,
+    feedback_ok:  "✅ ¡Excelente! Siempre verifica antes de compartir. ¡No todo lo que ves en internet es verdad!",
+    feedback_mal: "❌ Antes de compartir algo, verifica si es verdad. Pregunta a un adulto o busca si la fuente es confiable."
+  },
+  {
+    emoji: "👾",
+    pregunta: "Alguien en internet dice ser tu amigo pero te pide fotos o información personal. ¿Qué haces?",
+    opciones: [
+      "Le mando lo que pide porque parece simpático.",
+      "Le cuento mis secretos porque me prometió no decirle a nadie.",
+      "Desconfío, no le mando nada y le aviso a un adulto.",
+      "Acepto su solicitud de amistad y le doy mi número."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Muy bien! En internet las personas no siempre son quienes dicen ser. ¡Sé precavido y avisa a un adulto!",
+    feedback_mal: "❌ Nunca mandes fotos ni datos a personas que conociste solo por internet. Avisa siempre a un adulto de confianza."
+  },
+  {
+    emoji: "🏫",
+    pregunta: "Un compañero te está haciendo ciberacoso. ¿A quién puedes pedir ayuda?",
+    opciones: [
+      "A nadie, es mejor callarse.",
+      "Solo a mis amigos del mismo curso.",
+      "A mis papás, un profesor o un adulto de confianza.",
+      "Publicarlo en redes para que todos sepan."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Correcto! Tus papás, profesores y adultos de confianza están para protegerte. ¡Cuéntales todo!",
+    feedback_mal: "❌ Si eres víctima de ciberacoso, cuéntaselo a tus papás, profesores o a cualquier adulto de confianza. ¡No estás solo!"
+  },
+  {
+    emoji: "⚖️",
+    pregunta: "¿El ciberacoso tiene consecuencias legales en Colombia?",
+    opciones: [
+      "No, internet no tiene reglas.",
+      "Solo si el agresor es adulto.",
+      "Sí, la Ley 1620 protege a los estudiantes y obliga a los colegios a actuar.",
+      "Solo si se publica en Facebook."
+    ],
+    correcta: 2,
+    feedback_ok:  "✅ ¡Muy bien! La Ley 1620 de Convivencia Escolar protege a los estudiantes del ciberacoso. ¡El colegio debe actuar!",
+    feedback_mal: "❌ ¡Sí tiene consecuencias! La Ley 1620 protege a los estudiantes y obliga a los colegios a actuar ante el ciberacoso."
+  }
+];
+
+let actual = 0;
+let puntaje = 0;
+let respondido = false;
+const sonidos = {
+  ok:  crearOscilador(523, 0.1, 'sine', 0.3),
+  mal: crearOscilador(200, 0.1, 'sawtooth', 0.3),
+};
+let audioCtx = null;
+
+function crearOscilador(freq, vol, tipo, dur) {
+  return { freq, vol, tipo, dur };
+}
+
+function reproducir(tipo) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const cfg = sonidos[tipo];
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = cfg.tipo;
+    osc.frequency.value = cfg.freq;
+    gain.gain.value = cfg.vol;
+    osc.start();
+    if (tipo === 'ok') {
+      osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
+    }
+    osc.stop(audioCtx.currentTime + cfg.dur);
+  } catch(e) {}
+}
+
+function iniciar() {
+  document.getElementById('bienvenida').style.display = 'none';
+  document.getElementById('puntos-bar').style.display = 'flex';
+  document.getElementById('progreso-wrap').style.display = 'block';
+  document.getElementById('card').style.display = 'block';
+  mostrarPregunta();
+}
+
+function mostrarPregunta() {
+  respondido = false;
+  const p = preguntas[actual];
+  document.getElementById('num-pregunta').textContent = `Pregunta ${actual + 1} de ${preguntas.length}`;
+  document.getElementById('emoji-pregunta').textContent = p.emoji;
+  document.getElementById('texto-pregunta').textContent = p.pregunta;
+
+  const cont = document.getElementById('opciones');
+  cont.innerHTML = '';
+  p.opciones.forEach((op, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opcion';
+    btn.textContent = ['🅐','🅑','🅒','🅓'][i] + ' ' + op;
+    btn.onclick = () => responder(i, btn);
+    cont.appendChild(btn);
+  });
+
+  document.getElementById('feedback').style.display = 'none';
+  document.getElementById('btn-siguiente').style.display = 'none';
+
+  // Progreso
+  const pct = (actual / preguntas.length) * 100;
+  document.getElementById('progreso-bar').style.width = pct + '%';
+
+  // Estrellas
+  const filled = '⭐'.repeat(puntaje) + '☆'.repeat(preguntas.length - puntaje);
+  document.getElementById('stars-display').textContent = filled;
+
+  // Reanimar card
+  const card = document.getElementById('card');
+  card.style.animation = 'none';
+  void card.offsetWidth;
+  card.style.animation = 'aparecer 0.4s ease';
+}
+
+function responder(indice, btnElegido) {
+  if (respondido) return;
+  respondido = true;
+
+  const p = preguntas[actual];
+  const botones = document.querySelectorAll('.opcion');
+  botones.forEach(b => b.disabled = true);
+
+  const fb = document.getElementById('feedback');
+  fb.style.display = 'block';
+
+  if (indice === p.correcta) {
+    btnElegido.classList.add('correcta');
+    fb.className = 'ok';
+    fb.textContent = p.feedback_ok;
+    puntaje++;
+    reproducir('ok');
+  } else {
+    btnElegido.classList.add('incorrecta');
+    botones[p.correcta].classList.add('correcta');
+    fb.className = 'mal';
+    fb.textContent = p.feedback_mal;
+    reproducir('mal');
+  }
+
+  const siguiente = document.getElementById('btn-siguiente');
+  siguiente.style.display = 'block';
+  siguiente.textContent = actual < preguntas.length - 1 ? 'Siguiente pregunta ➡️' : '¡Ver mi resultado! 🏆';
+}
+
+function siguiente() {
+  actual++;
+  if (actual < preguntas.length) {
+    mostrarPregunta();
+  } else {
+    mostrarResultado();
+  }
+}
+
+function mostrarResultado() {
+  document.getElementById('card').style.display = 'none';
+  document.getElementById('puntos-bar').style.display = 'none';
+  document.getElementById('progreso-wrap').style.display = 'none';
+
+  const final = document.getElementById('pantalla-final');
+  final.style.display = 'block';
+
+  const pct = puntaje / preguntas.length;
+  let emoji, titulo, msg;
+
+  if (pct === 1) {
+    emoji = '🏆'; titulo = '¡Eres un SÚPER Guardián Digital!';
+    msg = '¡Respuesta perfecta! Conoces muy bien cómo protegerte en internet. Comparte lo que aprendiste con tus amigos y familia. 🌟';
+  } else if (pct >= 0.7) {
+    emoji = '🎉'; titulo = '¡Muy bien, campeón!';
+    msg = 'Tienes muy buen conocimiento sobre la seguridad digital. Repasa las preguntas que fallaste y sigue aprendiendo. 💪';
+  } else if (pct >= 0.4) {
+    emoji = '📚'; titulo = '¡Sigue aprendiendo!';
+    msg = 'Vas por buen camino. Te recomendamos repasar los temas de ciberacoso con tu profesor o un adulto de confianza. ¡Tú puedes!';
+  } else {
+    emoji = '💡'; titulo = '¡Este tema es muy importante!';
+    msg = 'No te preocupes, lo importante es aprender. Habla con tus papás o un adulto de confianza sobre cómo protegerte en internet. 🤝';
+  }
+
+  document.getElementById('emoji-final').textContent = emoji;
+  document.getElementById('titulo-final').textContent = titulo;
+  document.getElementById('resultado-estrellas').textContent = '⭐'.repeat(puntaje) + '☆'.repeat(preguntas.length - puntaje);
+  document.getElementById('puntaje-texto').textContent = `Respondiste bien ${puntaje} de ${preguntas.length} preguntas`;
+  document.getElementById('mensaje-final').textContent = msg;
+
+  if (pct >= 0.7) lanzarConfetti();
+}
+
+function lanzarConfetti() {
+  const colores = ['#2563EB','#7C3AED','#EC4899','#10B981','#F59E0B'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.cssText = `
+      left: ${Math.random() * 100}vw;
+      background: ${colores[Math.floor(Math.random() * colores.length)]};
+      animation-duration: ${1.5 + Math.random() * 2}s;
+      animation-delay: ${Math.random() * 1}s;
+      transform: rotate(${Math.random() * 360}deg);
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+}
+
+function reiniciar() {
+  actual = 0;
+  puntaje = 0;
+  document.getElementById('pantalla-final').style.display = 'none';
+  document.getElementById('puntos-bar').style.display = 'flex';
+  document.getElementById('progreso-wrap').style.display = 'block';
+  document.getElementById('card').style.display = 'block';
+  mostrarPregunta();
+}
+</script>
+</body>
+</html>
